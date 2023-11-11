@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+_PLUG_INVOKED="true"
 base_dir="$(dirname "$(realpath -s "$0")")"
 prog_path="$(realpath -s "$0")"
 plug_path=""
@@ -179,7 +180,6 @@ function invoke_plug() {
         fi
 
         if [[ $(type -t main) == function ]]; then
-            _PLUG_INVOKED="true"
             main
             [[ ! $? -eq 0 ]] && exit $?
         else
