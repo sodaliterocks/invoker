@@ -179,6 +179,7 @@ function invoke_plug() {
         fi
 
         if [[ $(type -t main) == function ]]; then
+            _PLUG_INVOKED="true"
             main
             [[ ! $? -eq 0 ]] && exit $?
         else
