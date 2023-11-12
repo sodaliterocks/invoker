@@ -209,6 +209,7 @@ function invoke_plug() {
 
         if [[ $(type -t main) == function ]]; then
             _PLUG_PATH="$path"
+            _PLUG_PASSED_ARGS="$args"
 
             main
 
