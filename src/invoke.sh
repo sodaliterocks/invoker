@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
-_PLUG_INVOKED="true"
+shopt -s extglob
+
 base_dir="$(dirname "$(realpath -s "$0")")"
 prog_path="$(realpath -s "$0")"
 plug_path=""
 plug_args=""
 
-shopt -s extglob
+_PLUG_INVOKED="true"
 
 . "$base_dir/utils/misc.sh"
 
@@ -81,6 +82,7 @@ function parse_plug_arg() {
     _PLUG_ARG_SHORT="${arg_array[1]}"
     _PLUG_ARG_HELP="${arg_array[2]}"
     _PLUG_ARG_TYPE="${arg_array[3]}"
+    _PLUG_ARG_DEFAULT="${arg_array[4]}"
 }
 
 function test_arg_type() {
@@ -106,7 +108,10 @@ function test_arg_type() {
     esac
 
     if [[ $valid == "false" ]]; then
-        die "Value for option --$_PLUG_ARG_PARAM (-$_PLUG_ARG_SHORT) must be a $_PLUG_ARG_TYPE (given: $value)"
+        die_message="Value for option --$_PLUG_ARG_PARAM "
+        [[ $_PLUG_ARG_SHORT != "" ]] && die_message+="(-$_PLUG_ARG_SHORT) "
+        die_message+="must be $_PLUG_ARG_TYPE (given: $value)"
+        die "$die_message"
     fi
 }
 
@@ -114,66 +119,89 @@ function invoke_plug() {
     path="$1"
     args=${@:2}
 
-
     if [[ -f "$path" ]]; then
         . "$path"
 
-        if [[ ! -z $args ]]; then
-            if [[ $args == "--help" || $args == "-h" ]]; then
-                [[ -z $_PLUG_TITLE ]] && _PLUG_TITLE="$(basename "$path")"
-                [[ -z $_PLUG_DESCRIPTION ]] && _PLUG_DESCRIPTION="(No description)"
+          if [[ $args == "--help" || $args == "-h" ]]; then
+              [[ -z $_PLUG_TITLE ]] && _PLUG_TITLE="$(basename "$path")"
+              [[ -z $_PLUG_DESCRIPTION ]] && _PLUG_DESCRIPTION="(No description)"
 
-                say "$_PLUG_TITLE"
-                say "  $_PLUG_DESCRIPTION"
-                say "\nUsage:"
-                say "  $(basename "$path") [options]"
-                say "\nOptions:"
+              say "$_PLUG_TITLE"
+              say "  $_PLUG_DESCRIPTION"
+              say "\nUsage:"
+              say "  $(basename "$path") [options]"
+              say "\nOptions:"
 
-                if [[ ! -z $_PLUG_ARGS ]]; then
-                    for arg in "${_PLUG_ARGS[@]}"; do
-                        parse_plug_arg ${arg}
+              if [[ ! -z $_PLUG_ARGS ]]; then
+                  for arg in "${_PLUG_ARGS[@]}"; do
+                      parse_plug_arg ${arg}
 
-                        param="--$_PLUG_ARG_PARAM"
+                      param="--$_PLUG_ARG_PARAM"
+                      help="$_PLUG_ARG_HELP"
 
-                        if [[ ! -z $_PLUG_ARG_SHORT ]]; then
-                            param="-$_PLUG_ARG_SHORT, $param"
-                        fi
+                      if [[ ! -z $_PLUG_ARG_SHORT ]]; then
+                          param="-$_PLUG_ARG_SHORT, $param"
+                      fi
 
-                        if [[ ! -z $_PLUG_ARG_TYPE ]]; then
-                            param="$param ($_PLUG_ARG_TYPE)"
-                        fi
+                      if [[ ! -z $_PLUG_ARG_TYPE ]]; then
+                          param="$param [$_PLUG_ARG_TYPE]"
+                      fi
 
-                        if [[ ! $_PLUG_ARG_PARAM == ex-* ]]; then
-                            say "  $param\n    $_PLUG_ARG_HELP"
-                        fi
+                      if [[ $_PLUG_ARG_DEFAULT != "" ]]; then
+                          help="$help (default: $_PLUG_ARG_DEFAULT)"
+                      fi
 
-                    done
-                fi
+                      print_arg_help=true
 
-                say "  -h, --help"
-                say "    Print this help screen"
+                      if [[ $SODALITE_INVOKER_SHOW_EXPERIMENTAL_HELP == "true" ]]; then
+                          if [[ $_PLUG_ARG_PARAM == ex-* ]]; then
+                              if [[ $_PLUG_ARG_HELP == "" ]]; then
+                                  print_arg_help=false
+                              fi
+                          fi
+                      else
+                          if [[ $_PLUG_ARG_PARAM == ex-* ]]; then
+                              print_arg_help=false
+                          fi
+                      fi
 
-                exit 0
-            else
-                for arg in "${_PLUG_ARGS[@]}"; do
-                    parse_plug_arg ${arg}
+                      if [[ $print_arg_help == true ]] then
+                          say "  $param\n    $help"
+                      fi
+                  done
+              fi
 
-                    if [[ $(echo "$args " | grep -o -P "(--$_PLUG_ARG_PARAM |-$_PLUG_ARG_SHORT )") ]]; then
-                        value=$(echo $args | grep -o -P "(?<=--$_PLUG_ARG_PARAM |-$_PLUG_ARG_SHORT ).*?(?:(?= -| --)|$)")
+              say "  -h, --help"
+              say "    Print this help screen"
 
-                        if { [[ -z $value ]] || [[ $value == -* ]]; }; then
-                            value="true"
-                        else
-                            value=$(echo $value | xargs)
-                        fi
+              exit 0
+          else
+              for arg in "${_PLUG_ARGS[@]}"; do
+                  parse_plug_arg ${arg}
 
-                        test_arg_type "${arg}" "$value"
-                        variable="_$(echo $_PLUG_ARG_PARAM | sed s/-/_/g)"
-                        eval "${variable}"='${value}' # bite me
-                    fi
-                done
-            fi
-        fi
+                  variable="_$(echo $_PLUG_ARG_PARAM | sed s/-/_/g)"
+                  value=""
+
+                  if [[ $(echo "$args " | grep -o -P "(--$_PLUG_ARG_PARAM |-$_PLUG_ARG_SHORT )") ]]; then
+                      value=$(echo $args | grep -o -P "(?<=--$_PLUG_ARG_PARAM |-$_PLUG_ARG_SHORT ).*?(?:(?= -| --)|$)")
+
+                      if { [[ -z $value ]] || [[ $value == -* ]]; }; then
+                          value="true"
+                      else
+                          value=$(echo $value | xargs)
+                      fi
+
+                      test_arg_type "${arg}" "$value"
+                  fi
+
+                  if [[ "$_PLUG_ARG_DEFAULT" != "" ]] && [[ $value == "" ]]; then
+                      value="$_PLUG_ARG_DEFAULT"
+                      test_arg_type "${arg}" "$value"
+                  fi
+
+                  eval "${variable}"='${value}' # bite me
+              done
+          fi
 
         if [[ $_PLUG_ROOT == "true" && ! $(id -u) = 0 ]]; then
             die "Unauthorized (are you root?)"
