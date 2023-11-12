@@ -208,7 +208,10 @@ function invoke_plug() {
         fi
 
         if [[ $(type -t main) == function ]]; then
+            _PLUG_PATH="$path"
+
             main
+
             [[ ! $? -eq 0 ]] && exit $?
         else
             echo "Plugin '$(basename "$path")' has no entrypoint (needs main())"
