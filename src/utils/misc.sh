@@ -19,6 +19,17 @@ function get_property() {
     fi
 }
 
+function repeat() {
+    string="$1"
+    amount=$2
+
+    if ! [[ -n $amount ]]; then
+        amount=20
+    fi
+
+    eval "for i in {1..$amount}; do echo -n "$1"; done"
+}
+
 function set_property() {
     file=$1
     property=$2
