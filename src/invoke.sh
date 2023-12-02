@@ -240,16 +240,3 @@ fi
 if [[ "$prog_path" != "$plug_path" ]]; then
     invoke_plug "$plug_path" $plug_args
 fi
-
-#echo "Plug: $plug_path"
-#echo "Args: $plug_args"
-
-#echo "Base: $prog_path"
-
-#echo $base_prog
-#echo $base_dir
-#echo $(basename $cmd)
-
-#echo "-----"
-
-#. $cmd > /dev/null 2>&1
