@@ -165,7 +165,7 @@ function invoke_plug() {
                           fi
                       fi
 
-                      if [[ $print_arg_help == true ]] then
+                      if [[ $print_arg_help == true ]]; then
                           say "  $param\n    $help"
                       fi
                   done
