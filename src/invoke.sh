@@ -85,6 +85,18 @@ function parse_plug_arg() {
     _PLUG_ARG_DEFAULT="${arg_array[4]}"
 }
 
+function say_help() {
+    say "Sodalite Invoker"
+    say "  (No description)"
+    say "\nUsage:"
+    say "  $0 [plug] [plug-options]"
+    say "  $0 [options]"
+    say "\nOptions:"
+    say "  -h, --help"
+    say "    Print this help screen"
+    exit 0
+}
+
 function test_arg_type() {
     arg="$1"
     value="$2"
@@ -223,15 +235,14 @@ function invoke_plug() {
 }
 
 if [[ $@ == "" ]]; then
-    die "Need args"
+    say_help
 else
     if [[ -f "$1" ]]; then
         plug_path="$(realpath -s "$1")"
         plug_args="${@:2}"
     else
         case $1 in
-            "-h"|"--help") echo "help!"; exit 0 ;;
-            "-v"|"--version") echo "version!"; exit 0 ;;
+            "-h"|"--help") say_help ;;
             *) die "Cannot find file" ;;
         esac
     fi
